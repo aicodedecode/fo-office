@@ -16,3 +16,5 @@ No backend, no build step: open `index.html` on any static host and keep the top
 {"type":"roster","ts":<ms>,"floors":[{"name":"Project","emoji":"🚀","bots":[{"name":"Task","status":"busy|stuck|idle","note":"one line"}]}]}
 {"type":"event","ts":<ms>,"kind":"started|done|stuck|note","bot":"...","text":"..."}
 ```
+
+Deploy: GitHub Pages from the `main` branch via the `deploy.yml` workflow (Source: GitHub Actions).
