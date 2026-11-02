@@ -33,6 +33,7 @@ h1{font-size:22px;letter-spacing:.5px}
 #stage{height:620px;border:1px solid var(--line);border-radius:16px;background:radial-gradient(1200px 520px at 50% 0%,#151b28,#0b0e14);position:relative;overflow:hidden;display:none}
 #stage canvas{display:block}
 #stage .hint{position:absolute;bottom:12px;left:16px;font-size:11px;color:var(--dim)}
+.sload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:13px;text-align:center;padding:0 24px}
 .floor{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:20px}
 .floor-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .floor-emoji{font-size:20px}
@@ -74,7 +75,7 @@ footer{color:var(--dim);font-size:12px;margin-top:34px;text-align:center}
   <div class="stats" id="stats"></div>
   <div class="grid">
     <div>
-      <div id="stage"><div class="hint">drag to orbit · scroll to zoom</div></div>
+      <div id="stage"><div class="hint">drag to orbit · scroll to zoom</div><div id="stageload" class="sload">connecting to the office feed…</div></div>
       <div id="floors"></div>
     </div>
     <aside class="feed"><h3>Live feed</h3><div id="feed" class="empty">waiting for the first post…</div></aside>
@@ -314,7 +315,11 @@ document.getElementById('vlist').onclick=()=>setMode('list');
 function ingest(m){
   let p;try{p=JSON.parse(m.message)}catch(e){return}
   if(!p||typeof p!=='object'||!p.type)return;
-  if(p.type==='roster'&&(!roster||(p.ts||0)>=lastRosterTs)){roster=p;lastRosterTs=p.ts||0;renderList();renderStats();if(mode==='3d'&&inited){buildOffice()}}
+  if(p.type==='roster'&&(!roster||(p.ts||0)>=lastRosterTs)){
+    roster=p;lastRosterTs=p.ts||0;
+    const sl=document.getElementById('stageload');if(sl)sl.style.display='none';
+    renderList();renderStats();if(mode==='3d'&&inited){buildOffice()}
+  }
   else if(p.type==='event'&&(!lastRosterTs||(p.ts||0)>=lastRosterTs-12*3600e3)){
     if(!events.some(x=>x.ts===p.ts&&x.text===p.text)){events.push(p);renderFeed();officeEvent(p)}
   }
@@ -322,11 +327,16 @@ function ingest(m){
 }
 async function poll(){
   if(!TOPIC)return;
+  const sl=document.getElementById('stageload');
   document.getElementById('livedot').style.background='var(--amber)';
   try{
     const r=await fetch('https://ntfy.sh/'+TOPIC+'/json?poll=1&since=24h');
     (await r.text()).trim().split('\n').filter(Boolean).map(JSON.parse).forEach(ingest);
-  }catch(e){document.getElementById('sync').textContent='reconnecting…'}
+    if(!roster&&sl&&sl.style.display!=='none')sl.textContent='connecting to the office feed…';
+  }catch(e){
+    document.getElementById('sync').textContent='reconnecting…';
+    if(sl&&sl.style.display!=='none')sl.textContent="can't reach the status channel — retrying every 20 s…";
+  }
   document.getElementById('livedot').style.background='var(--green)';
 }
 if(TOPIC){
