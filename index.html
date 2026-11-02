@@ -74,7 +74,7 @@ footer{color:var(--dim);font-size:12px;margin-top:34px;text-align:center}
   <div class="stats" id="stats"></div>
   <div class="grid">
     <div>
-      <div id="stage"><div class="hint">drag to orbit · scroll to zoom · watch them walk</div></div>
+      <div id="stage"><div class="hint">drag to orbit · scroll to zoom</div></div>
       <div id="floors"></div>
     </div>
     <aside class="feed"><h3>Live feed</h3><div id="feed" class="empty">waiting for the first post…</div></aside>
@@ -122,8 +122,8 @@ function renderFeed(){
 
 /* ---------- 3D office ---------- */
 let scene,camera,renderer,controls,officeGroup,floors3D=[],inited=false,threeFailed=false;
-function statusColor(s){return s==='busy'?0xf5a623:(s==='stuck'?0xff5d5d:0x5b6b85)}
-function statusHex(s){return s==='busy'?'#f5a623':(s==='stuck'?'#ff5d5d':'#a9b6cc')}
+function statusColor(s){return s==='busy'?0xc9924a:(s==='stuck'?0xc25b5b:0x3d4a63)}
+function statusHex(s){return s==='busy'?'#d9a44a':(s==='stuck'?'#d95757':'#7e8aa3')}
 function makeLabel(text,color,div){
   div=div||38;
   const cv=document.createElement('canvas');const ctx=cv.getContext('2d');
@@ -137,11 +137,11 @@ function makeLabel(text,color,div){
 }
 function scribbleTex(){
   const cv=document.createElement('canvas');cv.width=256;cv.height=160;const c=cv.getContext('2d');
-  c.fillStyle='#f4f6fa';c.fillRect(0,0,256,160);
-  c.lineWidth=7;c.lineCap='round';
-  c.strokeStyle='#ff5d5d';c.beginPath();c.moveTo(24,34);c.lineTo(128,34);c.stroke();
-  c.strokeStyle='#f5a623';c.beginPath();c.moveTo(24,68);c.lineTo(206,68);c.stroke();
-  c.strokeStyle='#3ddc84';c.beginPath();c.moveTo(24,102);c.lineTo(158,102);c.stroke();
+  c.fillStyle='#e9edf4';c.fillRect(0,0,256,160);
+  c.lineWidth=6;c.lineCap='round';
+  c.strokeStyle='#b05c5c';c.beginPath();c.moveTo(24,34);c.lineTo(128,34);c.stroke();
+  c.strokeStyle='#b58a4a';c.beginPath();c.moveTo(24,68);c.lineTo(206,68);c.stroke();
+  c.strokeStyle='#4f8f6d';c.beginPath();c.moveTo(24,102);c.lineTo(158,102);c.stroke();
   c.strokeStyle='#5b6b85';c.beginPath();c.moveTo(24,136);c.lineTo(108,136);c.stroke();
   return new THREE.CanvasTexture(cv);
 }
@@ -172,10 +172,10 @@ function init3D(){
   camera=new THREE.PerspectiveCamera(40,1,.1,500);
   controls=new THREE.OrbitControls(camera,renderer.domElement);
   controls.enableDamping=true;controls.dampingFactor=.08;
-  controls.autoRotate=true;controls.autoRotateSpeed=.55;
+  controls.autoRotate=true;controls.autoRotateSpeed=.3;
   controls.minDistance=18;controls.maxDistance=160;
-  scene.add(new THREE.HemisphereLight(0xbcd3ff,0x0b0e14,1.15));
-  const d=new THREE.DirectionalLight(0xffffff,.75);d.position.set(24,50,34);scene.add(d);
+  scene.add(new THREE.HemisphereLight(0xbcd3ff,0x0b0e14,1.05));
+  const d=new THREE.DirectionalLight(0xffffff,.65);d.position.set(24,50,34);scene.add(d);
   officeGroup=new THREE.Group();scene.add(officeGroup);
   resize();addEventListener('resize',resize);
   animate();
@@ -193,10 +193,6 @@ function buildOffice(){
   floors3D=[];
   const GAP=13;
   const n=roster.floors.length;
-  const tileCv=document.createElement('canvas');tileCv.width=tileCv.height=64;
-  const tc=tileCv.getContext('2d');
-  tc.fillStyle='#182031';tc.fillRect(0,0,64,64);
-  tc.fillStyle='#20293e';tc.fillRect(0,0,32,32);tc.fillRect(32,32,32,32);
   roster.floors.forEach((f,i)=>{
     const y=-i*GAP;
     const g=new THREE.Group();g.position.y=y;
@@ -204,32 +200,31 @@ function buildOffice(){
     const perRow=Math.min(4,Math.max(1,bots.length));
     const rows=Math.ceil(bots.length/perRow);
     const W=Math.max(42,perRow*7.4+14),D=Math.max(26,rows*7+13);
-    const tx=new THREE.CanvasTexture(tileCv);tx.wrapS=tx.wrapT=THREE.RepeatWrapping;tx.repeat.set(W/5,D/5);
-    const slab=new THREE.Mesh(new THREE.BoxGeometry(W,.8,D),new THREE.MeshStandardMaterial({map:tx,roughness:.9}));
+    const slab=new THREE.Mesh(new THREE.BoxGeometry(W,.8,D),new THREE.MeshStandardMaterial({color:0x1a2130,roughness:.95}));
     slab.position.y=-.4;g.add(slab);
-    const wallMat=new THREE.MeshStandardMaterial({color:0x2a3450,roughness:.95});
+    const wallMat=new THREE.MeshStandardMaterial({color:0x232c42,roughness:.95});
     const wallB=new THREE.Mesh(new THREE.BoxGeometry(W,7,.4),wallMat);wallB.position.set(0,3.1,-D/2+.2);g.add(wallB);
     const wallL=new THREE.Mesh(new THREE.BoxGeometry(.4,7,D),wallMat);wallL.position.set(-W/2+.2,3.1,0);g.add(wallL);
     for(let k=0;k<3;k++){
-      const win=new THREE.Mesh(new THREE.BoxGeometry(3.4,2.2,.12),new THREE.MeshStandardMaterial({color:0x0e1420,emissive:0x3a5f8f,emissiveIntensity:.85}));
+      const win=new THREE.Mesh(new THREE.BoxGeometry(3.4,2.2,.12),new THREE.MeshStandardMaterial({color:0x0e1420,emissive:0x2e4a6f,emissiveIntensity:.55}));
       win.position.set(-W/2+7+k*(W-14)/2,3.4,-D/2+.55);g.add(win);
     }
-    const lab=makeLabel((f.emoji?f.emoji+' ':'')+f.name,'#e8ecf4',30);
+    const lab=makeLabel((f.emoji?f.emoji+' ':'')+f.name,'#c3cbdb',32);
     lab.position.set(0,6.4,-D/2+1.4);g.add(lab);
     const wb=new THREE.Group();wb.position.set(-W/2+3,0,D/4);
-    const board=new THREE.Mesh(new THREE.BoxGeometry(.3,3,4.6),new THREE.MeshStandardMaterial({color:0x39445f}));
+    const board=new THREE.Mesh(new THREE.BoxGeometry(.3,3,4.6),new THREE.MeshStandardMaterial({color:0x2e3850}));
     board.position.y=2.1;wb.add(board);
     const face=new THREE.Mesh(new THREE.PlaneGeometry(4.2,2.5),new THREE.MeshBasicMaterial({map:scribbleTex()}));
     face.rotation.y=Math.PI/2;face.position.set(.18,2.1,0);wb.add(face);
-    const legs=new THREE.Mesh(new THREE.BoxGeometry(.7,1.8,4.6),new THREE.MeshStandardMaterial({color:0x232c3f}));
+    const legs=new THREE.Mesh(new THREE.BoxGeometry(.7,1.8,4.6),new THREE.MeshStandardMaterial({color:0x20283a}));
     legs.position.y=.9;wb.add(legs);
     g.add(wb);
     const meet={x:-W/2+7,z:D/4};
     [[W/2-2.5,-D/2+2.5],[W/2-2.5,D/2-2.5]].forEach(pp=>{
       const pl=new THREE.Group();pl.position.set(pp[0],0,pp[1]);
-      const pot=new THREE.Mesh(new THREE.CylinderGeometry(.55,.4,.9,10),new THREE.MeshStandardMaterial({color:0x8a4a35}));
+      const pot=new THREE.Mesh(new THREE.CylinderGeometry(.55,.4,.9,10),new THREE.MeshStandardMaterial({color:0x6e4a38}));
       pot.position.y=.45;pl.add(pot);
-      const leaf=new THREE.Mesh(new THREE.SphereGeometry(.8,10,8),new THREE.MeshStandardMaterial({color:0x3fae6a,roughness:.85}));
+      const leaf=new THREE.Mesh(new THREE.SphereGeometry(.8,10,8),new THREE.MeshStandardMaterial({color:0x3a7a55,roughness:.9}));
       leaf.position.y=1.5;leaf.scale.y=1.45;pl.add(leaf);
       g.add(pl);
     });
@@ -237,24 +232,22 @@ function buildOffice(){
     bots.forEach((b,k)=>{
       const col=k%perRow,row=Math.floor(k/perRow);
       const x=(col-(perRow-1)/2)*7.4+2.5, z=(rows-1)*3.5-row*7-2.5;
-      const desk=new THREE.Mesh(new THREE.BoxGeometry(4.4,1.2,1.9),new THREE.MeshStandardMaterial({color:0x31405f,roughness:.8}));
+      const desk=new THREE.Mesh(new THREE.BoxGeometry(4.4,1.2,1.9),new THREE.MeshStandardMaterial({color:0x262f47,roughness:.85}));
       desk.position.set(x,.6,z);g.add(desk);
-      const scr=new THREE.Mesh(new THREE.BoxGeometry(1.9,1.1,.14),new THREE.MeshStandardMaterial({color:0x10141c,emissive:statusColor(b.status),emissiveIntensity:b.status==='idle'?.35:1}));
+      const scr=new THREE.Mesh(new THREE.BoxGeometry(1.9,1.1,.14),new THREE.MeshStandardMaterial({color:0x10141c,emissive:statusColor(b.status),emissiveIntensity:b.status==='idle'?.22:.7}));
       scr.position.set(x,1.85,z+.55);g.add(scr);
       const ch=new THREE.Group();ch.position.set(x,0,z-1.7);
-      const body=new THREE.Mesh(new THREE.CylinderGeometry(.42,.55,1.5,12),new THREE.MeshStandardMaterial({color:0x9aa7bd,roughness:.7}));
+      const body=new THREE.Mesh(new THREE.CylinderGeometry(.42,.55,1.5,12),new THREE.MeshStandardMaterial({color:0x77839a,roughness:.75}));
       body.position.y=1.85;ch.add(body);
-      const head=new THREE.Mesh(new THREE.SphereGeometry(.5,16,12),new THREE.MeshStandardMaterial({color:0xe8ecf4,roughness:.55}));
+      const head=new THREE.Mesh(new THREE.SphereGeometry(.5,16,12),new THREE.MeshStandardMaterial({color:0xd5dbe6,roughness:.6}));
       head.position.y=2.95;ch.add(head);
       g.add(ch);
-      const ring=new THREE.Mesh(new THREE.TorusGeometry(1.1,.1,8,32),new THREE.MeshBasicMaterial({color:statusColor(b.status)}));
+      const ring=new THREE.Mesh(new THREE.TorusGeometry(1.1,.07,8,32),new THREE.MeshBasicMaterial({color:statusColor(b.status)}));
       ring.rotation.x=-Math.PI/2;ring.position.set(x,.06,z-1.7);g.add(ring);
-      const nl=makeLabel(shortName(b.name),statusHex(b.status));nl.position.set(x,4.6,z-1.7);g.add(nl);
-      let mark=null;
-      if(b.status==='stuck'){mark=makeLabel('!','#ff5d5d',18);mark.position.set(x+1.4,3.9,z-1.7);g.add(mark)}
-      fl.bots.push({name:b.name.toLowerCase(),status:b.status,ch:ch,mark:mark,ring:ring,
+      const nl=makeLabel(shortName(b.name),statusHex(b.status),46);nl.position.set(x,4.5,z-1.7);g.add(nl);
+      fl.bots.push({name:b.name.toLowerCase(),status:b.status,ch:ch,
         home:{x:x,z:z-1.7},meet:{x:meet.x+(k%3)*2.2-2.2,z:meet.z+(k%2)*1.8-.9},
-        target:null,mode:'idle',after:'idle',speed:4.5,ph:k*1.7,celebrateUntil:0});
+        target:null,mode:'idle',speed:4.5,ph:k*1.7});
     });
     floors3D.push(fl);
     officeGroup.add(g);
@@ -268,24 +261,18 @@ function tickBot(b,dt,t){
   const p=b.ch.position;
   if(b.mode==='walk'&&b.target){
     const dx=b.target.x-p.x,dz=b.target.z-p.z,d=Math.hypot(dx,dz);
-    if(d<.25){b.mode=b.after;b.after='idle';b.target=null;}
+    if(d<.25){b.mode='idle';b.target=null;p.y=0;}
     else{
       const s=Math.min(1,b.speed*dt/d);p.x+=dx*s;p.z+=dz*s;
       b.ch.rotation.y=Math.atan2(dx,dz);
-      p.y=Math.abs(Math.sin(t*7+b.ph))*.22;
+      p.y=Math.abs(Math.sin(t*4.5+b.ph))*.09;
     }
   }else if(b.mode==='meeting'){
-    const ry=Math.atan2(-1,0.2);
-    b.ch.rotation.y+=(ry-b.ch.rotation.y)*.08;
-    b.ch.position.y=Math.abs(Math.sin(t*1.2+b.ph))*.05;
-  }else if(b.mode==='celebrate'){
-    b.ch.position.y=Math.abs(Math.sin(t*5.5+b.ph))*.9;
-    if(t>b.celebrateUntil){b.mode='idle'}
-  }else if(b.mode==='stuck'){
-    b.ch.rotation.z=Math.sin(t*14+b.ph)*.07;
+    const ry=Math.atan2(-1,.2);
+    b.ch.rotation.y+=(ry-b.ch.rotation.y)*.06;
   }else{
-    b.ch.rotation.z*=.85;
-    b.ch.position.y=(b.status==='busy')?Math.abs(Math.sin(t*3+b.ph))*.07:Math.max(0,b.ch.position.y-dt);
+    b.ch.rotation.z*=.8;
+    b.ch.position.y=Math.max(0,b.ch.position.y-dt);
   }
 }
 function officeEvent(e){
@@ -295,9 +282,8 @@ function officeEvent(e){
   let hit=null;
   floors3D.forEach(fl=>fl.bots.forEach(b=>{if(!hit&&(name.includes(b.name)||b.name.includes(name)))hit=b}));
   if(!hit)return;
-  if(e.kind==='started'){hit.mode='walk';hit.after='meeting';hit.target={x:hit.meet.x,z:hit.meet.z};}
-  else if(e.kind==='done'){hit.mode='walk';hit.after='celebrate';hit.target={x:hit.home.x,z:hit.home.z};hit.celebrateUntil=T+3.2;}
-  else if(e.kind==='stuck'){hit.mode='walk';hit.after='stuck';hit.target={x:hit.home.x,z:hit.home.z};}
+  if(e.kind==='started'){hit.mode='walk';hit.target={x:hit.meet.x,z:hit.meet.z};}
+  else if(e.kind==='done'||e.kind==='stuck'){hit.mode='walk';hit.target={x:hit.home.x,z:hit.home.z};}
 }
 function animate(){
   requestAnimationFrame(animate);
