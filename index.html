@@ -69,7 +69,7 @@ footer{color:var(--dim);font-size:12px;margin-top:34px;text-align:center}
     <div id="floors"></div>
     <aside class="feed"><h3>Live feed</h3><div id="feed" class="empty">waiting for the first post…</div></aside>
   </div>
-  <footer>fed by a private Fo status channel · refreshes every 20 s</footer>
+  <footer>live stream · 20 s safety poll</footer>
 </div>
 <script>
 const TOPIC=new URLSearchParams(location.search).get('t')||'';
@@ -103,24 +103,30 @@ function renderFeed(){
   }).join('');
 }
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-async function load(){
+function ingest(m){
+  let p;try{p=JSON.parse(m.message)}catch(e){return}
+  if(!p||typeof p!=='object'||!p.type)return;
+  if(p.type==='roster'&&(!roster||(p.ts||0)>=lastRosterTs)){roster=p;lastRosterTs=p.ts||Date.parse(m.time)||0;render()}
+  else if(p.type==='event'&&(!lastRosterTs||(p.ts||0)>=lastRosterTs-12*3600e3)){
+    if(!events.some(x=>x.ts===p.ts&&x.text===p.text)){events.push(p);renderFeed()}
+  }
+  document.getElementById('sync').textContent='synced '+fmt(Date.now());
+}
+async function poll(){
   if(!TOPIC)return;
   document.getElementById('livedot').style.background='var(--amber)';
   try{
     const r=await fetch(`https://ntfy.sh/${TOPIC}/json?poll=1&since=24h`);
-    const msgs=(await r.text()).trim().split('\n').filter(Boolean).map(JSON.parse);
-    for(const m of msgs){
-      let p;try{p=JSON.parse(m.message)}catch(e){continue}
-      if(!p||typeof p!=='object'||!p.type)continue;
-      if(p.type==='roster'&&(!roster||(p.ts||0)>=lastRosterTs)){roster=p;lastRosterTs=p.ts||Date.parse(m.time)||0}
-      else if(p.type==='event'&&(!lastRosterTs||(p.ts||0)>=lastRosterTs-12*3600e3)){if(!events.some(x=>x.ts===p.ts&&x.text===p.text))events.push(p)}
-    }
-    document.getElementById('sync').textContent='synced '+fmt(Date.now());
+    (await r.text()).trim().split('\n').filter(Boolean).map(JSON.parse).forEach(ingest);
   }catch(e){document.getElementById('sync').textContent='reconnecting…'}
   document.getElementById('livedot').style.background='var(--green)';
   render();renderFeed();
 }
-if(TOPIC){load();setInterval(load,20000)}
+if(TOPIC){
+  poll();setInterval(poll,20000);
+  const es=new EventSource(`https://ntfy.sh/${TOPIC}/sse`);
+  es.onmessage=e=>{try{ingest(JSON.parse(e.data))}catch(_){}};
+}
 else{
   document.getElementById('floors').innerHTML=`<div class="setup"><h2 style="margin-bottom:10px">Fo HQ setup</h2>This dashboard reads a private Fo status channel. Open it with your channel id appended:<br><br><code>?t=fo-hq-…</code><br><br>Fo posts a full roster snapshot every 4 hours and live pings whenever work starts, finishes or gets stuck.</div>`;
   document.getElementById('stats').innerHTML='';document.getElementById('feed').parentElement.style.display='none';
