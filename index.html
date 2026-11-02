@@ -85,6 +85,7 @@ footer{color:var(--dim);font-size:12px;margin-top:34px;text-align:center}
 const TOPIC=new URLSearchParams(location.search).get('t')||'';
 let lastRosterTs=0,builtTs=-1,roster=null,events=[];
 let mode=(innerWidth>=760)?'3d':'list';
+let clock=null;
 const fmt=ts=>new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
 function dot(s){return '<span class="status st-'+s+'"></span>'}
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
@@ -149,9 +150,10 @@ function loadThree(cb){
   document.head.appendChild(s);
 }
 function init3D(){
-  if(threeFailed){setMode('list');return}
+  if(threeFailed){threeFailed=true;setMode('list');return}
   const box=document.getElementById('stage');
   try{renderer=new THREE.WebGLRenderer({antialias:true})}catch(e){threeFailed=true;setMode('list');return}
+  clock=new THREE.Clock();
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   box.appendChild(renderer.domElement);
   scene=new THREE.Scene();
@@ -168,7 +170,7 @@ function init3D(){
   resize();addEventListener('resize',resize);
   animate();
   inited=true;
-  if(roster){builtTs=-1;buildOffice()}
+  if(roster){buildOffice()}
 }
 function resize(){
   const b=document.getElementById('stage');const w=b.clientWidth,h=b.clientHeight;
@@ -181,13 +183,15 @@ function buildOffice(){
   bots3D=[];
   const GAP=13;
   const n=roster.floors.length;
+  let maxW=0;
   roster.floors.forEach((f,i)=>{
     const y=-i*GAP;
     const g=new THREE.Group();g.position.y=y;
     const bots=f.bots||[];
     const perRow=Math.min(4,Math.max(1,bots.length));
     const rows=Math.ceil(bots.length/perRow);
-    const W=Math.max(34,perRow*7+10),D=Math.max(24,rows*7+11);
+    const W=Math.max(34,perRow*7.4+10),D=Math.max(24,rows*7+11);
+    maxW=Math.max(maxW,W);
     const slab=new THREE.Mesh(new THREE.BoxGeometry(W,.8,D),new THREE.MeshStandardMaterial({color:0x161c29,roughness:.9}));
     slab.position.y=-.4;g.add(slab);
     const wall=new THREE.Mesh(new THREE.BoxGeometry(W,7,.4),new THREE.MeshStandardMaterial({color:0x1d2536,roughness:.95}));
@@ -218,18 +222,17 @@ function buildOffice(){
     });
     officeGroup.add(g);
   });
-  camera.position.set(0,-(n-1)*GAP/2+16,Math.max(44,W*0.9));
-  controls.target.set(0,-(n-1)*GAP/2,0);
+  camera.position.set(0,-(n-1)*13/2+16,Math.max(46,maxW*0.95));
+  controls.target.set(0,-(n-1)*13/2,0);
 }
-const clock=new THREE.Clock();
 function animate(){
   requestAnimationFrame(animate);
-  if(!inited)return;
+  if(!inited||!clock)return;
   const t=clock.getElapsedTime();
   bots3D.forEach(b=>{
     if(b.status==='busy'){b.ch.position.y=Math.abs(Math.sin(t*2.4+b.ph))*.35}
     else b.ch.position.y*=.9;
-    if(b.mark){const s=1+Math.sin(t*5+b.ph)*.18;b.mark.scale.multiplyScalar(s/b.mark.userData.s||1);b.mark.userData.s=s}
+    if(b.mark){b.mark.position.y=3.9+Math.sin(t*5+b.ph)*.25}
   });
   controls.update();
   renderer.render(scene,camera);
@@ -237,16 +240,16 @@ function animate(){
 
 /* ---------- mode ---------- */
 function setMode(m){
+  if(m==='3d'&&threeFailed)m='list';
   mode=m;
   document.getElementById('v3d').classList.toggle('on',m==='3d');
   document.getElementById('vlist').classList.toggle('on',m==='list');
   document.getElementById('stage').style.display=m==='3d'?'block':'none';
   document.getElementById('floors').style.display=m==='list'?'block':'none';
-  if(m==='3d'&&!threeFailed){
+  if(m==='3d'){
     if(!inited){loadThree(()=>{init3D()})}
-    else{resize();builtTs=-1;buildOffice()}
+    else{resize();buildOffice()}
   }
-  if(m==='3d'&&threeFailed){mode='list';document.getElementById('v3d').classList.remove('on');document.getElementById('vlist').classList.add('on');document.getElementById('stage').style.display='none';document.getElementById('floors').style.display='block'}
 }
 document.getElementById('v3d').onclick=()=>setMode('3d');
 document.getElementById('vlist').onclick=()=>setMode('list');
@@ -255,7 +258,7 @@ document.getElementById('vlist').onclick=()=>setMode('list');
 function ingest(m){
   let p;try{p=JSON.parse(m.message)}catch(e){return}
   if(!p||typeof p!=='object'||!p.type)return;
-  if(p.type==='roster'&&(!roster||(p.ts||0)>=lastRosterTs)){roster=p;lastRosterTs=p.ts||0;renderList();renderStats();if(mode==='3d'&&inited){builtTs=-1;buildOffice()}}
+  if(p.type==='roster'&&(!roster||(p.ts||0)>=lastRosterTs)){roster=p;lastRosterTs=p.ts||0;renderList();renderStats();if(mode==='3d'&&inited){buildOffice()}}
   else if(p.type==='event'&&(!lastRosterTs||(p.ts||0)>=lastRosterTs-12*3600e3)){
     if(!events.some(x=>x.ts===p.ts&&x.text===p.text)){events.push(p);renderFeed()}
   }
